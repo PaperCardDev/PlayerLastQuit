@@ -11,4 +11,7 @@ public interface PlayerLastQuitApi {
 
     @SuppressWarnings("unused")
     @NotNull List<Info> queryByIp(@NotNull String ip) throws Exception;
+
+    @SuppressWarnings("unused")
+    @NotNull List<Info> queryByName(@NotNull String name) throws Exception;
 }

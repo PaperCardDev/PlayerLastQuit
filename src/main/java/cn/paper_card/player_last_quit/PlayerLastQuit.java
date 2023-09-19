@@ -81,6 +81,14 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
         }
     }
 
+    @Override
+    public @NotNull List<Info> queryByName(@NotNull String name) throws Exception {
+        synchronized (lock) {
+            final Table t = this.getTable();
+            return t.queryByName(name);
+        }
+    }
+
     private boolean addOrUpdateByUuid(@NotNull Info info) throws Exception {
         synchronized (lock) {
             final Table t = this.getTable();
@@ -137,6 +145,8 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
 
         private final PreparedStatement statementQueryByIp;
 
+        private final PreparedStatement statementQueryByName;
+
 
         Table(@NotNull Connection connection) throws SQLException {
             this.create(connection);
@@ -156,6 +166,10 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
                         SELECT name, uid1, uid2, ip, time FROM %s WHERE ip=?
                         """.formatted(NAME)
                 );
+
+                this.statementQueryByName = connection.prepareStatement("""
+                        SELECT name, uid1, uid2, ip, time FROM %s WHERE name=?
+                        """.formatted(NAME));
 
             } catch (SQLException e) {
                 try {
@@ -234,6 +248,13 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
         @NotNull List<Info> queryByIp(@NotNull String ip) throws SQLException {
             final PreparedStatement ps = this.statementQueryByIp;
             ps.setString(1, ip);
+            final ResultSet resultSet = ps.executeQuery();
+            return this.parseAll(resultSet);
+        }
+
+        @NotNull List<Info> queryByName(@NotNull String name) throws SQLException {
+            final PreparedStatement ps = this.statementQueryByName;
+            ps.setString(1, name);
             final ResultSet resultSet = ps.executeQuery();
             return this.parseAll(resultSet);
         }
