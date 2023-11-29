@@ -1,14 +1,14 @@
 package cn.paper_card.player_last_quit;
 
-import cn.paper_card.database.DatabaseApi;
-import cn.paper_card.database.DatabaseConnection;
+import cn.paper_card.database.api.DatabaseApi;
+import cn.paper_card.database.api.Util;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -22,25 +22,29 @@ import java.util.UUID;
 
 public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitApi, Listener {
 
-    private DatabaseConnection connection = null;
+    private Connection connection = null;
     private Table table = null;
 
     private final @NotNull Object lock = new Object();
 
-    private @NotNull DatabaseConnection getConnection() throws Exception {
-        if (this.connection == null) {
-            final Plugin database = this.getServer().getPluginManager().getPlugin("Database");
-            if (!(database instanceof DatabaseApi api)) throw new Exception("Database插件未安装！");
-            this.connection = api.connectUnimportant();
-        }
-        return this.connection;
-    }
 
     private @NotNull Table getTable() throws Exception {
         if (this.table == null) {
-            this.table = new Table(this.getConnection().getConnection());
+            this.table = new Table(this.connection);
         }
         return this.table;
+    }
+
+    @Override
+    public void onLoad() {
+        final DatabaseApi api = this.getServer().getServicesManager().load(DatabaseApi.class);
+        if (api == null) throw new RuntimeException("无法连接到" + DatabaseApi.class.getSimpleName());
+
+        try {
+            this.connection = api.getLocalSQLite().connectUnimportant();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -86,6 +90,18 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
         synchronized (lock) {
             final Table t = this.getTable();
             return t.queryByName(name);
+        }
+    }
+
+    @Override
+    public @Nullable Info queryByUuid(@NotNull UUID uuid) throws Exception {
+        synchronized (lock) {
+            final Table t = this.getTable();
+            final List<Info> list = t.queryByUuid(uuid);
+            final int size = list.size();
+            if (size == 1) return list.get(0);
+            if (size == 0) return null;
+            throw new Exception("根据一个UUID查询到了%d条数据！".formatted(size));
         }
     }
 
@@ -147,6 +163,8 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
 
         private final PreparedStatement statementQueryByName;
 
+        private final PreparedStatement statementQueryByUuid;
+
 
         Table(@NotNull Connection connection) throws SQLException {
             this.create(connection);
@@ -171,6 +189,10 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
                         SELECT name, uid1, uid2, ip, time FROM %s WHERE name=?
                         """.formatted(NAME));
 
+                this.statementQueryByUuid = connection.prepareStatement("""
+                        SELECT name, uid1, uid2, ip, time FROM %s WHERE uid1=? AND uid2=?
+                        """.formatted(NAME));
+
             } catch (SQLException e) {
                 try {
                     this.close();
@@ -191,11 +213,11 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
                     )
                     """.formatted(NAME);
 
-            DatabaseConnection.createTable(connection, sql);
+            Util.executeSQL(connection, sql);
         }
 
         void close() throws SQLException {
-            DatabaseConnection.closeAllStatements(this.getClass(), this);
+            Util.closeAllStatements(this.getClass(), this);
         }
 
         int insert(@NotNull Info info) throws SQLException {
@@ -255,6 +277,14 @@ public final class PlayerLastQuit extends JavaPlugin implements PlayerLastQuitAp
         @NotNull List<Info> queryByName(@NotNull String name) throws SQLException {
             final PreparedStatement ps = this.statementQueryByName;
             ps.setString(1, name);
+            final ResultSet resultSet = ps.executeQuery();
+            return this.parseAll(resultSet);
+        }
+
+        @NotNull List<Info> queryByUuid(@NotNull UUID uuid) throws SQLException {
+            final PreparedStatement ps = this.statementQueryByUuid;
+            ps.setLong(1, uuid.getMostSignificantBits());
+            ps.setLong(2, uuid.getLeastSignificantBits());
             final ResultSet resultSet = ps.executeQuery();
             return this.parseAll(resultSet);
         }
