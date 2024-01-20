@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 
 class TableMySQL extends Parser<QuitInfo> {
@@ -20,6 +21,8 @@ class TableMySQL extends Parser<QuitInfo> {
     private PreparedStatement statementUpdateByUuid = null;
 
     private PreparedStatement statementQueryByIpLatest = null;
+
+    private PreparedStatement statementQueryTimeAfter = null;
 
     private final @NotNull Connection connection;
 
@@ -78,6 +81,17 @@ class TableMySQL extends Parser<QuitInfo> {
         return this.statementQueryByIpLatest;
     }
 
+    private @NotNull PreparedStatement getStatementQueryTimeAfter() throws SQLException {
+        if (this.statementQueryTimeAfter == null) {
+            this.statementQueryTimeAfter = this.connection.prepareStatement("""
+                    SELECT name, uid1, uid2, ip, time
+                    FROM %s
+                    WHERE time > ?
+                    ORDER BY time;""".formatted(NAME));
+        }
+        return this.statementQueryTimeAfter;
+    }
+
     int insert(@NotNull QuitInfo info) throws SQLException {
         final PreparedStatement ps = this.getStatementInsert();
         ps.setString(1, info.name());
@@ -114,5 +128,14 @@ class TableMySQL extends Parser<QuitInfo> {
         ps.setString(1, ip);
         final ResultSet resultSet = ps.executeQuery();
         return this.parseOne(resultSet);
+    }
+
+    @NotNull List<QuitInfo> queryTimeAfter(long time) throws SQLException {
+        final PreparedStatement ps = this.getStatementQueryTimeAfter();
+
+        ps.setLong(1, time);
+        final ResultSet resultSet = ps.executeQuery();
+
+        return this.parseAll(resultSet);
     }
 }

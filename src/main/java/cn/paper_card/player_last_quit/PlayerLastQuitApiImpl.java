@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 class PlayerLastQuitApiImpl implements PlayerLastQuitApi2 {
 
@@ -77,6 +78,26 @@ class PlayerLastQuitApiImpl implements PlayerLastQuitApi2 {
                 final QuitInfo quitInfo = t.queryByIpLatest(ip);
                 this.mySqlConnection.setLastUseTime();
                 return quitInfo;
+            } catch (SQLException e) {
+                try {
+                    this.mySqlConnection.handleException(e);
+                } catch (SQLException ignored) {
+                }
+                throw e;
+            }
+        }
+    }
+
+    @Override
+    public @NotNull List<QuitInfo> queryTimeAfter(long time) throws SQLException {
+        synchronized (this.mySqlConnection) {
+            try {
+                final TableMySQL t = this.getTable();
+
+                final List<QuitInfo> list = t.queryTimeAfter(time);
+                this.mySqlConnection.setLastUseTime();
+
+                return list;
             } catch (SQLException e) {
                 try {
                     this.mySqlConnection.handleException(e);
