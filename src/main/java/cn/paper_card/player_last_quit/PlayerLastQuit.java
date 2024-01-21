@@ -42,7 +42,24 @@ public final class PlayerLastQuit extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
 
+
         if (this.playerLastQuitApi != null) {
+            // 保存所有玩家的退出信息
+            for (final Player p : getServer().getOnlinePlayers()) {
+                final InetSocketAddress address = p.getAddress();
+                if (address == null) continue;
+                final InetAddress address1 = address.getAddress();
+                if (address1 == null) continue;
+                final String hostAddress = address1.getHostAddress();
+                if (hostAddress == null) continue;
+
+                try {
+                    this.playerLastQuitApi.addOrUpdateByUuid(new QuitInfo(p.getUniqueId(), p.getName(), hostAddress, System.currentTimeMillis()));
+                } catch (SQLException e) {
+                    getSLF4JLogger().error("", e);
+                }
+            }
+
             try {
                 this.playerLastQuitApi.close();
             } catch (SQLException e) {
