@@ -107,4 +107,24 @@ class PlayerLastQuitApiImpl implements PlayerLastQuitApi2 {
             }
         }
     }
+
+    @Override
+    public @NotNull List<QuitInfo> queryLatest(long time) throws SQLException {
+        synchronized (this.mySqlConnection) {
+            try {
+                final TableMySQL t = this.getTable();
+
+                final List<QuitInfo> list = t.queryLatest(time);
+                this.mySqlConnection.setLastUseTime();
+
+                return list;
+            } catch (SQLException e) {
+                try {
+                    this.mySqlConnection.handleException(e);
+                } catch (SQLException ignored) {
+                }
+                throw e;
+            }
+        }
+    }
 }

@@ -24,6 +24,8 @@ class TableMySQL extends Parser<QuitInfo> {
 
     private PreparedStatement statementQueryTimeAfter = null;
 
+    private PreparedStatement statementQueryLatest = null;
+
     private final @NotNull Connection connection;
 
 
@@ -92,6 +94,18 @@ class TableMySQL extends Parser<QuitInfo> {
         return this.statementQueryTimeAfter;
     }
 
+    private @NotNull PreparedStatement getStatementQueryLatest() throws SQLException {
+        if (this.statementQueryLatest == null) {
+            this.statementQueryLatest = this.connection.prepareStatement("""
+                    SELECT name, uid1, uid2, ip, time
+                    FROM %s
+                    WHERE time > (SELECT max(time)
+                                  FROM %s) - ?
+                    ORDER BY time DESC;""".formatted(NAME, NAME));
+        }
+        return this.statementQueryLatest;
+    }
+
     int insert(@NotNull QuitInfo info) throws SQLException {
         final PreparedStatement ps = this.getStatementInsert();
         ps.setString(1, info.name());
@@ -120,6 +134,13 @@ class TableMySQL extends Parser<QuitInfo> {
         final String ip = resultSet.getString(4);
         final long time = resultSet.getLong(5);
         return new QuitInfo(new UUID(uid1, uid2), name, ip, time);
+    }
+
+    @NotNull List<QuitInfo> queryLatest(long time) throws SQLException {
+        final PreparedStatement ps = this.getStatementQueryLatest();
+        ps.setLong(1, time);
+        final ResultSet resultSet = ps.executeQuery();
+        return this.parseAll(resultSet);
     }
 
 

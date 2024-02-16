@@ -7,3 +7,11 @@ folia-supported: true
 
 depend:
   - Database
+
+commands:
+  player-last-quit:
+    permission: player-last-quit.command
+
+permissions:
+  player-last-quit.command:
+    default: op

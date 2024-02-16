@@ -41,13 +41,21 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <filters>
                                 <filter>
-                                    <artifact>com.github.PaperCardDev:*</artifact>
+                                    <artifact>cn.paper_card:*</artifact>
                                     <excludes>
                                         <exclude>META-INF/*.MF</exclude>
                                     </excludes>
                                 </filter>
+
                                 <filter>
-                                    <artifact>org.jetbrains:*</artifact>
+                                    <artifact>com.github.Anon8281:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.MF</exclude>
+                                    </excludes>
+                                </filter>
+
+                                <filter>
+                                    <artifact>com.github.PaperCardDev:*</artifact>
                                     <excludes>
                                         <exclude>META-INF/*.MF</exclude>
                                     </excludes>
@@ -80,12 +88,13 @@
             <id>jitpack.io</id>
             <url>https://www.jitpack.io</url>
         </repository>
+
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>dev.folia</groupId>
-            <artifactId>folia-api</artifactId>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
             <version>1.20.1-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
@@ -93,7 +102,13 @@
         <dependency>
             <groupId>com.github.PaperCardDev</groupId>
             <artifactId>player-last-quit-api</artifactId>
-            <version>1.1</version>
+            <version>1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.PaperCardDev</groupId>
+            <artifactId>mc-command</artifactId>
+            <version>1.0</version>
         </dependency>
 
         <dependency>
@@ -101,6 +116,12 @@
             <artifactId>database-api</artifactId>
             <version>1.2</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.Anon8281</groupId>
+            <artifactId>UniversalScheduler</artifactId>
+            <version>0.1.6</version>
         </dependency>
 
     </dependencies>
